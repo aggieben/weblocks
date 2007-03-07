@@ -54,23 +54,19 @@
 ; slot-names are an association list, slots will be renamed according
 ; to the values in the list. This option takes effect only if hidep
 ; is true.
-(defmethod render-data ((obj standard-object) &key
-			inlinep slot-names hidep observe-order-p)
+(defmethod render-data ((obj standard-object) &rest keys &key inlinep &allow-other-keys)
   (if (not inlinep) (render-data-header obj))
   (if (not inlinep) (render-data-pre-slots obj))
-  (mapc (lambda (slot)
-	  (apply #'render-data-slot obj (cdr slot) (get-slot-value obj (car slot))
-		 `(:slot-names ,slot-names :hidep ,hidep :observe-order-p ,observe-order-p)))
-	(object-visible-slots obj
-			      :slot-names slot-names
-			      :hidep hidep
-			      :observe-order-p observe-order-p))
+  (let ((keys-copy (copy-list keys)))
+    (remf keys-copy :inlinep)
+    (mapc (lambda (slot)
+	    (apply #'render-data-slot obj (cdr slot) (get-slot-value obj (car slot)) keys))
+	  (apply #'object-visible-slots obj keys-copy)))
   (if (not inlinep) (render-data-post-slots obj))
   (if (not inlinep) (render-data-footer obj))
   *weblocks-output-stream*)
 
-(defmethod render-data (obj &key
-			inlinep slot-names hidep observe-order-p)
+(defmethod render-data (obj &rest keys &key inlinep &allow-other-keys)
   (format *weblocks-output-stream* "<span>~A</span>" obj)
   *weblocks-output-stream*)
 
