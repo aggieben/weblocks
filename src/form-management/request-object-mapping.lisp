@@ -1,15 +1,16 @@
 
 (in-package :weblocks)
 
-(export '(update-object-from-request parse-slot-from-request))
+(export '(update-object-from-request slot-in-request-empty-p))
 
 (defgeneric update-object-from-request (obj &key slots &allow-other-keys)
   (:documentation
-   "Finds parameters in the request that match slots with
-accessors (or slots passed in the key) and populates them with
-the values from the form. If any given slot has a type specifier,
-the request parameter is parsed into that type. Otherwise, the
-value of the string is assigned to the slot.
+   "Tries to deserialize an object from a request via
+'update-object-from-request' (used to easily process forms), and in
+case of success sets object slots to appropriate values.
+
+If succeeded returns true. Otherwise returns nil as the first value,
+and an association list of slot names and errors as the second value.
 
 'obj' - An object to be updated from the request.
 'slots' - A list of slots to update that wouldn't be
@@ -29,7 +30,28 @@ details)."))
 	  (values nil results)))))
 
 (defun object-from-request-valid-p (obj visible-slots)
-  "Collects slot values and errors from the request."
+  "Verifies whether form data that came in with the request can be
+successfully deserialized into an object. In the process,
+'parse-slot-from-request' is called to convert request strings into
+appropriate types and 'validate-slot-from-request' is called to apply
+validators that were defined on the slot. Special treatment is given
+to the required validator via 'slot-value-required-p' - if a required
+slot is missing ('slot-in-request-empty-p'), no further processing of
+the slot can be done.
+
+The function returns two values.
+
+If parsing and validating the request completed successfully, the
+first return value is true, and the second return value is an
+association list of slot names and parsed results.
+
+If the object coudln't be successfully deserialized, the first return
+value is nil, and the second return value is an association list of
+slot names and error conditions that prevented the slot from
+deserializing.
+
+Note, this function does not actually set the slot values, this is
+done by 'update-object-from-request'."
   (let (errors results)
     (mapc (lambda (slot)
 	    (let* ((slot-key (attributize-name (cdr slot)))
@@ -54,32 +76,14 @@ details)."))
 	(values nil errors)
 	(values t results))))
 
-(define-condition parse-validation-error (form-validation-error)
-  ((expected-type :accessor validation-expected-type :initarg :expected-type))
-  (:report (lambda (condition stream)
-	     (format stream "~S must be of type ~A."
-		     (humanize-name (validation-error-slot condition))
-		     (humanize-name (validation-expected-type condition))))))
-
-(defgeneric parse-slot-from-request (slot-type slot-name request-slot-value)
+(defgeneric slot-in-request-empty-p (slot-type request-slot-value)
   (:documentation
-   "Parses 'request-slot-value' into a type specified by
-'slot-type'. By default implementations are provided for basic
-types. If no type is specified for the slot or there is no matching
-generic function, a string is used as is.
+   "Returns true if the slot value in request is to be considered
+'empty', i.e. all whitespace, 'Select State' dropdown value, etc.
 
-Returns a parsed value, or signals an error.
+Default implementation returns true when all characters of the request
+value are a whitespace."))
 
-This method is used by 'update-object-from-request' to parse strings
-entered into forms into appropriate types in order to populate object
-slots. Extend this method to provide further specializations for
-'slot-type'."))
+(defmethod slot-in-request-empty-p (slot-type request-slot-value)
+  (string-whitespace-p request-slot-value))
 
-(defmethod parse-slot-from-request (slot-type slot-name request-slot-value)
-  request-slot-value)
-
-(defmethod parse-slot-from-request ((slot-type (eql 'integer)) slot-name request-slot-value)
-  (handler-case (parse-integer request-slot-value)
-    (parse-error (condition) (error (make-condition 'parse-validation-error
-						    :slot-name slot-name
-						    :expected-type 'integer)))))
