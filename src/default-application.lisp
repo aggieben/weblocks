@@ -3,7 +3,7 @@
 
 (defwebapp 'weblocks)
 
-(defmethod render-page-body :after (body-fn)
+(defmethod render-page-body :after (rendered-html)
   (with-html
       (:div :class "footer"
 	    (:p "Running on "
