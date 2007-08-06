@@ -33,11 +33,6 @@ a
   overflow: hidden;
 }
 
-.renderer .extra-top-3
-{
-  display: none;
-}
-
 .renderer h1, .renderer fieldset h1
 {
   margin: 0;
