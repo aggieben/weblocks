@@ -6,7 +6,7 @@
       (render-isearch "some-search" "some-action" :form-id 'i1 :input-id 'i2 :search-id 'i3
 		      :value "test"))
   (htm
-   (:form :id "I1" :class "isearch" :action "" :method "get" :onsubmit
+   (:form :id "I1" :class "isearch" :action "/foo/bar" :method "get" :onsubmit
 	  "initiateFormAction(\"some-action\", $(this), \"weblocks-session=1%3Atest\"); return false;"
 	  (:div :class "extra-top-1" "&nbsp;")
 	  (:div :class "extra-top-2" "&nbsp;")
@@ -34,7 +34,7 @@
       (render-isearch "some-search" "some-action" :form-id 'i1 :input-id 'i2 :search-id 'i3
 		      :value "test"))
   (htm
-   (:form :id "I1" :class "isearch" :action "" :method "get" :onsubmit
+   (:form :id "I1" :class "isearch" :action "/foo/bar" :method "get" :onsubmit
 	  "initiateFormAction(\"some-action\", $(this), \"weblocks-session=1%3Atest\"); return false;"
 	  (:div :class "extra-top-1" "&nbsp;")
 	  (:div :class "extra-top-2" "&nbsp;")
