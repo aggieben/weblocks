@@ -41,3 +41,10 @@
     (:div :class "extra-bottom-1" "&nbsp;")
     (:div :class "extra-bottom-2" "&nbsp;")
     (:div :class "extra-bottom-3" "&nbsp;")))
+
+;;; testing render-link
+(deftest-html render-link-1
+    (with-request :get nil
+      (render-link "abc123" "some link"))
+  #.(link-action-template "abc123" "some link"))
+
