@@ -40,6 +40,20 @@ form.renderer fieldset ul li label select
   width: 12em;
 }
 
+form.renderer fieldset ul li label input.checkbox
+{
+  width: auto;
+  /* A hack for IE to line up the checkbox */
+  margin-left: -4px;
+}
+
+/* Set normal margin for other browsers (comment is necessary to hide
+from IE7) */
+form.renderer >/**/fieldset ul li label input.checkbox
+{
+  margin-left: 0;
+}
+
 form.renderer fieldset div.submit input.submit
 {
   margin-top: 2px;

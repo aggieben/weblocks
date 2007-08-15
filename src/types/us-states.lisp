@@ -31,31 +31,14 @@
 (defmethod us-state ((state us-state))
   (slot-value state 'state))
 
-(defmethod render-form ((obj us-state) &rest keys &key inlinep
+#|(defmethod render-form-aux ((obj us-state) &rest keys &key inlinep
 			slot-path intermediate-fields &allow-other-keys)
   (let* ((slot-name (attributize-name (last-item slot-path)))
 	 (intermediate-value (assoc slot-name intermediate-fields :test #'string-equal)))
     (render-suggest slot-name *us-states* :value (if intermediate-value
 						     (cdr intermediate-value)
-						     (us-state obj)))))
+						     (us-state obj)))))|#
 
-
-(defmethod render-form-slot (obj slot-name (slot-value us-state) &rest keys
-			     &key (human-name slot-name) validation-errors &allow-other-keys)
-  (let* ((attribute-slot-name (attributize-name slot-name))
-	 (validation-error (assoc attribute-slot-name validation-errors :test #'string-equal))
-	 (field-class (concatenate 'string attribute-slot-name
-				   (when validation-error " item-not-validated"))))
-    (with-html
-      (:li :class field-class
-       (:label
-	(:span (str (humanize-name human-name)) ":&nbsp;")
-	(apply #'render-form slot-value keys)
-	(when validation-error
-	  (htm (:p :class "validation-error"
-		   (:em
-		    (:span :class "validation-error-heading" "Error:&nbsp;")
-		    (str (format nil "~A" (cdr validation-error))))))))))))
 
   #|
     (with-html
