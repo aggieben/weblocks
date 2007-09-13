@@ -43,7 +43,8 @@ leaves 'singular-word' as is, otherwise pluralizes it."
 (defun proper-indefinite-article (word)
   "Returns a proper indefinite article for a word. Returns 'an' for
 'apple' and 'a' for 'table'."
-  (if (vowelp (aref word 0))
+  (if (and (vowelp (aref word 0))
+	   (not (eq (char-downcase (aref word 0)) #\u)))
       "an"
       "a"))
 

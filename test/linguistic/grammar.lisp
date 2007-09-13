@@ -56,6 +56,10 @@
     (proper-indefinite-article "thing")
   "a")
 
+(deftest proper-indefinite-article-3
+    (proper-indefinite-article "Useable")
+  "a")
+
 ;;; test articlize
 (deftest articlize-1
     (articlize "thing")
