@@ -49,7 +49,8 @@ div.empty-table p span.caption
 }
 
 /* Hover on table */
-.table table tbody tr:hover
+.table table tbody tr:hover,
+.datagrid table tbody tr.drilled-down
 {
   background: #dbeac1;
 }
