@@ -27,6 +27,11 @@
   font-weight: bold;  
 }
 
+.menu ul li
+{
+  padding-left: 0;
+}
+
 .menu ul li.selected-item
 {
   padding-left: 0.5em;
@@ -66,21 +71,13 @@
   background: url(/pub/images/widget/menu/bottom_right.png) no-repeat top right;
 }
 
-.menu li:hover
-{
-  background-color: #bfd9ec;
-}
-
-/* Make the hover work for IE 6 */
-* html .menu li
-{
-  background-color: expression(
-    this.onmouseover = new Function("this.runtimeStyle.backgroundColor = '#bfd9ec';"),
-    this.onmouseout = new Function("this.runtimeStyle.backgroundColor = '#d8eaf8';"));
-}
-
 .menu a
 {
-  display: block
-  text-decoration: underline;
+  display: block;
 }
+
+.menu a:hover
+{
+   background-color: #bfd9ec;
+}
+
