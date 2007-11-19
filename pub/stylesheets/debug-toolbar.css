@@ -20,6 +20,9 @@ body > .debug-toolbar
 * html .debug-toolbar
 {
   position: absolute;
+  /* in case JS is turned off */
+  left: 0;
+  /* in case JS is on */
   left: expression((documentElement.scrollLeft) + 'px');
   top: expression((documentElement.scrollTop
                      + (documentElement.clientHeight - this.clientHeight - 1))
