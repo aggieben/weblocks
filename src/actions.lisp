@@ -1,7 +1,14 @@
 
 (in-package :weblocks)
 
-(export '(make-action-url make-action))
+(export '(*expired-action-handler* make-action-url make-action))
+
+(defparameter *expired-action-handler* 'default-expired-action-handler
+  "Must be bound to a designator of a zero argument function. The
+function gets called when the user tries to invoke an expired
+action (due to a session timeout). The function should determine the
+behavior in this situation (e.g. redirect, signal an error, etc.)
+Default function redirects to the root of the application.")
 
 (defparameter *action-string* "action"
   "A string used to pass actions from a client to the server. See
@@ -24,8 +31,9 @@ string is then returned. When later requests come in,
 came with the request is stored in the hashtable, and if so, invokes
 the stored function.
 
-'action-fn' - A function of zero arguments that will be called if
-the user initiates appropriate control (link, form, etc.)
+'action-fn' - A function that will be called if the user initiates
+appropriate control (link, form, etc.) GET and POST parameters will be
+passed to this function as keyword arguments by the framework.
 
 'action-code' - The code to use for an action (if not specified
 make-action generates a unique value for each action). Note, if you
@@ -87,4 +95,10 @@ raises an assertion."
 (defun eval-action ()
   "Evaluates the action that came with the request."
   (safe-apply (get-request-action) (alist->plist (request-parameters))))
+
+(defun default-expired-action-handler ()
+  "Default value of *expired-action-handler*. Redirects to application
+root and sets a query parameter 'timeout' to true, so that the home
+page may display a relevant message, if necessary."
+  (redirect "/?timeout=t"))
 

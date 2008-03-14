@@ -5,7 +5,7 @@
 	  *required-field-message* *invalid-input-message* form form-view
 	  form-view-error-summary-threshold form-view-use-ajax-p
 	  form-view-default-method form-view-default-enctype
-	  form-view-default-action form-view-default-title form-view-persist-p
+	  form-view-default-action form-view-persist-p form-view-focus-p
 	  form-view-buttons form-view-field-writer-mixin form-view-field
 	  form-view-field-parser form-view-field-satisfies
 	  form-view-field-writer form-view-field-required-p mixin-form
@@ -52,7 +52,8 @@ input is not valid.")
 	           form if :method isn't specified in keyword
 	           parameters when rendering the view. Possible values
 	           are :get (default) and :post.")
-   (default-action :initform nil
+   (default-action :initform (lambda (&rest args)
+			       (declare (ignore args)))
                    :initarg :default-action
 		   :accessor form-view-default-action
 		   :documentation "A default action that will be
@@ -64,25 +65,28 @@ input is not valid.")
 	    :accessor form-view-default-enctype
 	    :documentation "An enctype that will be
 	    used upon submission of the form.")
-   (default-title :initform "Modifying"
-                  :initarg :default-title
-		  :accessor form-view-default-title
-		  :documentation "A default title that will be
-	          presented to the user if :title isn't specified in
-	          keyword parameters when rendering the view.")
    (persistp :initform t
 	     :initarg :persistp
 	     :accessor form-view-persist-p
 	     :documentation "Specifies whether the object should be
 	     persisted via 'persist-object' on successful
 	     deserealization of the form.")
+   (focusp :initform nil
+	   :initarg :focusp
+	   :accessor form-view-focus-p
+	   :documentation "If set to true, renders appropriate
+	   JavaScript to focus on the first element of the form once
+	   the form is loaded. This slot is set to false by default.")
    (buttons :initform (list :submit :cancel)
 	    :initarg :buttons
 	    :accessor form-view-buttons
 	    :documentation "Contains a list of keywords that identify
 	    buttons to be rendered (by default contains :submit
 	    and :cancel).  Default form view only recognizes :submit
-	    and :cancel keywords."))
+	    and :cancel keywords. Each item of the list may be a cons
+	    pair, in which case CAR of the pair should be a keyword,
+	    and CDR of the pair should be a string that will be
+	    presented to the user via value of the button."))
   (:documentation "A view designed to interact with the user via input
   forms."))
 
@@ -165,19 +169,31 @@ differently.")
   (:method ((view form-view) obj widget errors)
     (declare (ignore view obj))
     (when errors
-      (with-html
+      (let ((non-field-errors (find-all errors #'null :key #'car))
+	    (field-errors (find-all errors (compose #'not #'null) :key #'car)))
+	(with-html
 	  (:div :class "validation-errors-summary"
 		(:h2 :class "error-count"
 		     (let ((error-count (length errors)))
 		       (if (eql error-count 1)
 			   (str (format nil "There is 1 validation error:"))
 			   (str (format nil "There are ~S validation errors:" error-count)))))
-		(:ul
-		 (mapc (lambda (err)
-			 (with-html
-			     (:li
-			      (str (format nil "~A" (cdr err))))))
-		       errors)))))))
+		(when non-field-errors
+		  (htm
+		   (:ul :class "non-field-validation-errors"
+			(mapc (lambda (err)
+				(with-html
+				  (:li
+				   (str (format nil "~A" (cdr err))))))
+			      non-field-errors))))
+		(when field-errors
+		  (htm
+		   (:ul :class "field-validation-errors"
+			(mapc (lambda (err)
+				(with-html
+				  (:li
+				   (str (format nil "~A" (cdr err))))))
+			      field-errors))))))))))
 
 (defgeneric render-form-view-buttons (view obj widget &rest args)
   (:documentation
@@ -190,38 +206,68 @@ differently.
 'obj' - the object being rendered.")
   (:method ((view form-view) obj widget &rest args)
     (declare (ignore obj args))
-    (with-html
-      (:div :class "submit"
-	    (when (member :submit (form-view-buttons view))
-	      (render-button *submit-control-name*))
-	    (when (member :cancel (form-view-buttons view))
-	      (render-button *cancel-control-name* :class "submit cancel"))))))
+    (flet ((find-button (name)
+	     (ensure-list
+	      (find name (form-view-buttons view)
+		    :key (lambda (item)
+			   (car (ensure-list item)))))))
+      (with-html
+	(:div :class "submit"
+	      (let ((submit (find-button :submit)))
+		(when submit
+		  (render-button *submit-control-name*
+				 :value (or (cdr submit)
+					    (humanize-name (car submit))))))
+	      (let ((cancel (find-button :cancel)))
+		(when cancel
+		  (render-button *cancel-control-name*
+				 :class "submit cancel"
+				 :value (or (cdr cancel)
+					    (humanize-name (car cancel)))))))))))
+
+(defmethod view-caption ((view form-view))
+  (if (slot-value view 'caption)
+      (slot-value view 'caption)
+      (with-html-output-to-string (out)
+	(:span :class "action" "Modifying:&nbsp;")
+	(:span :class "object" "~A"))))
 
 ;;; Implement rendering protocol
 (defmethod with-view-header ((view form-view) obj widget body-fn &rest args &key
 			     (method (form-view-default-method view))
 			     (action (form-view-default-action view))
-			     (title (form-view-default-title view))
 			     (fields-prefix-fn (view-fields-default-prefix-fn view))
 			     (fields-suffix-fn (view-fields-default-suffix-fn view))
 			     validation-errors
 			     &allow-other-keys)
-  (let ((header-class (format nil "view form ~A"
+  (declare (special *on-ajax-complete-scripts*))
+  (let ((form-id (gen-id))
+	(header-class (format nil "view form ~A"
 			      (attributize-name (object-class-name obj)))))
     (when (>= (count-view-fields view)
 	      (form-view-error-summary-threshold view))
       (setf header-class (concatenate 'string header-class " long-form")))
-    (with-html-form (method action :class header-class
+    (with-html-form (method action
+			    :id (when (form-view-focus-p view) form-id)
+			    :class header-class
 			    :enctype (form-view-default-enctype view)
 			    :use-ajax-p (form-view-use-ajax-p view))
-      (:h1 (:span :class "action" (str (concatenate 'string title ":&nbsp;")))
-	   (:span :class "object" (str (humanize-name (object-class-name obj)))))
+      (:h1 (fmt (view-caption view)
+		(humanize-name (object-class-name obj))))
       (render-validation-summary view obj widget validation-errors)
       (:h2 :class "form-fields-title" "Form fields:")
       (safe-apply fields-prefix-fn view obj args)
       (:ul (apply body-fn view obj args))
       (safe-apply fields-suffix-fn view obj args)
-      (apply #'render-form-view-buttons view obj widget args))))
+      (apply #'render-form-view-buttons view obj widget args))
+    (when (form-view-focus-p view)
+      (let ((focus-script (format nil "$('~A').focusFirstElement();" form-id)))
+	(if (ajax-request-p)
+	    (push (format nil "new Function(~A)"
+			  (encode-json-to-string focus-script))
+		  *on-ajax-complete-scripts*)
+	    (with-javascript
+	      focus-script))))))
 
 (defmethod render-view-field ((field form-view-field) (view form-view)
 			      widget presentation value obj 

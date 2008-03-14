@@ -2,45 +2,26 @@
 ; Operations that support memory-backed stores
 (in-package :weblocks-memory)
 
-(export '(filter-objects-in-memory object-satisfies-search-p
+(export '(make-scratch-store objects-from-scratch-store
 	  order-objects-in-memory strictly-less-p equivalentp
 	  range-objects-in-memory))
 
-;;;;;;;;;;;;;;
-;;; Filter ;;;
-;;;;;;;;;;;;;;
-(defgeneric object-satisfies-search-p (search-regex obj view)
-  (:documentation
-   "Determines if a view of 'obj' satisfies a search regex. Default
-implementation applies 'search-regex' to string representations of
-each view field value (obtained via calling 'print-view-field-value'),
-and if one matches returns true.
+;;;;;;;;;;;;;;;;;;;;;;
+;;; Scratch stores ;;;
+;;;;;;;;;;;;;;;;;;;;;;
+(defun make-scratch-store (&optional list)
+  "Accepts an optional list of objects, and creates a memory store
+from them."
+  (let ((store (make-instance 'memory-store)))
+    (dolist (obj list store)
+      (persist-object store obj))))
 
-'search-regex' - regular expression to be applied.
-'obj' - the object that contains the slot in question.
-'view' - name of the slot.")
-  (:method (search-regex obj view)
-    (when (null view)
-      (setf view (find-view (list 'data (class-name (class-of obj))))))
-    (some (lambda (field-info)
-	    (let ((field (field-info-field field-info))
-		  (obj (field-info-object field-info)))
-	      (not (null (ppcre:scan search-regex (print-view-field-value
-						   (obtain-view-field-value field obj)
-						   (view-field-presentation field)
-						   field view nil obj))))))
-	  (get-object-view-fields obj view))))
-
-(defun filter-objects-in-memory (seq filter view)
-  "Filters objects in 'seq' presented with view according to
-'filter'."
-  (if filter
-      (remove nil
-	      (mapcar (lambda (item)
-			(when (funcall #'object-satisfies-search-p (make-isearch-regex filter) item view)
-			  item))
-		      seq))
-      seq))
+(defun objects-from-scratch-store (store)
+  "Accepts a memory store and returns a list of objects stored in
+it."
+  (loop for table being the hash-values in (memory-store-root-objects store)
+       append (loop for i being the hash-values in (persistent-objects-of-class-by-id table)
+		 collect i)))
 
 ;;;;;;;;;;;;;
 ;;; Order ;;;

@@ -40,10 +40,13 @@ customize behavior)."))
     (throw 'handler-done nil))
   (when (null *session*)
     (when (get-request-action-name)
-      (error "Cannot invoke action ~A. The session has timed out." (get-request-action-name)))
+      (funcall *expired-action-handler*))
     (start-session)
     (setf (session-value 'last-request-uri) :none)
     (redirect (request-uri)))
+  (when *maintain-last-session*
+    (hunchentoot::with-lock (*maintain-last-session*)
+      (setf *last-session* *session*)))
   (let ((*request-hook* (make-instance 'request-hooks)))
     (declare (special *request-hook*))
     (when (null (root-composite))
@@ -68,45 +71,39 @@ customize behavior)."))
 			*current-page-description*))
       (when (pure-request-p)
 	(throw 'handler-done (eval-action)))
-      ; wrap action and pre/post action hooks in transaction
-      (let (tx-all-committed-p)
-	(unwind-protect
-	     (progn
-	       (mapstores #'begin-transaction)
-	       (eval-hook :pre-action)
-	       (eval-action)
-	       (eval-hook :post-action)
-	       (mapstores #'commit-transaction)
-	       (setf tx-all-committed-p t))
-	  (unless tx-all-committed-p
-	    (mapstores #'rollback-transaction))))
+      ; a default dynamic-action hook function wraps get operations in a transaction
+      (with-dynamic-hooks (:dynamic-action)
+	(eval-hook :pre-action)
+	(eval-action)
+	(eval-hook :post-action))
       (when (and (not (ajax-request-p))
 		 (find *action-string* (get-parameters)
 		       :key #'car :test #'string-equal))
 	(redirect (remove-action-from-uri (request-uri))))
-      (eval-hook :pre-render)
-      (if (ajax-request-p)
-	  (progn
-	    (setf *current-navigation-url*
-		  (obtain-uri-from-navigation
-		   (find-navigation-widget
-		    (root-composite))))
-	    (render-dirty-widgets))
-	  (progn
-	    (apply-uri-to-navigation *uri-tokens*
-				     (find-navigation-widget (root-composite)))
-	    ; we need to render widgets before the boilerplate HTML
-	    ; that wraps them in order to collect a list of script and
-	    ; stylesheet dependencies.
-	    (render-widget (root-composite))
-	    ; set page title if it isn't already set
-	    (when (and (null *current-page-description*)
-		       (last *uri-tokens*))
-	      (setf *current-page-description* (humanize-name (last-item *uri-tokens*))))
-	    ; render page will wrap the HTML already rendered to
-	    ; *weblocks-output-stream* with necessary boilerplate HTML
-	    (render-page)))
-      (eval-hook :post-render)
+      (with-dynamic-hooks (:dynamic-render)
+	(eval-hook :pre-render)
+	(if (ajax-request-p)
+	    (progn
+	      (setf *current-navigation-url*
+		    (obtain-uri-from-navigation
+		     (find-navigation-widget
+		      (root-composite))))
+	      (render-dirty-widgets))
+	    (progn
+	      (apply-uri-to-navigation *uri-tokens*
+				       (find-navigation-widget (root-composite)))
+	      ; we need to render widgets before the boilerplate HTML
+	      ; that wraps them in order to collect a list of script and
+	      ; stylesheet dependencies.
+	      (render-widget (root-composite))
+	      ; set page title if it isn't already set
+	      (when (and (null *current-page-description*)
+			 (last *uri-tokens*))
+		(setf *current-page-description* (humanize-name (url-decode (last-item *uri-tokens*)))))
+	      ; render page will wrap the HTML already rendered to
+	      ; *weblocks-output-stream* with necessary boilerplate HTML
+	      (render-page)))
+	(eval-hook :post-render))
       (unless (ajax-request-p)
 	(setf (session-value 'last-request-uri) *uri-tokens*))
       (get-output-stream-string *weblocks-output-stream*))))
@@ -125,7 +122,7 @@ association list. This function is normally called by
 'handle-client-request' to service AJAX requests."
   (declare (special *dirty-widgets* *weblocks-output-stream*
 		    *on-ajax-complete-scripts*))
-  (setf (content-type) "application/json; charset=utf-8")
+  (setf (content-type) *json-content-type*)
   (format *weblocks-output-stream* "{\"widgets\":~A,\"on-load\":~A}"
 		(encode-json-alist-to-string
 		 (mapcar (lambda (w)
@@ -137,3 +134,24 @@ association list. This function is normally called by
 			      (get-output-stream-string *weblocks-output-stream*))))
 			 *dirty-widgets*))
 		(encode-json-to-string *on-ajax-complete-scripts*)))
+
+(defun action-txn-hook (hooks)
+  "This is a dynamic action hook that wraps POST actions using the 
+   weblocks transaction functions over all stores"
+  (if (eq (request-method) :post)
+      (let (tx-error-occurred-p)
+	(unwind-protect
+	     (handler-case (progn
+			     (mapstores #'begin-transaction)
+			     (eval-dynamic-hooks hooks))
+	       (error (err) (progn
+			      (mapstores #'rollback-transaction)
+			      (setf tx-error-occurred-p t)
+			      (error err))))
+	  (unless tx-error-occurred-p
+	    (mapstores #'commit-transaction))))
+      (eval-dynamic-hooks hooks)))
+  
+(eval-when (:load-toplevel)
+  (pushnew 'action-txn-hook
+	   (request-hook :application :dynamic-action)))

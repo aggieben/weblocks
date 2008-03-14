@@ -1,6 +1,12 @@
 
 (in-package :weblocks-test)
 
+;;; Test view-caption
+(deftest dataview-view-caption-1
+    (view-caption (make-instance 'data-view
+				 :caption "foo"))
+  "foo")
+
 ;;; Test data view with-view-header
 (deftest-html data-view-with-view-header-1
     (with-view-header (make-instance 'data-view)
@@ -111,4 +117,18 @@
      '((:li :class "name" (:span :class "label text" "Name:&nbsp;") (:span :class "value" "Joe"))
        (:li :class "manager" (:span :class "label text" "Manager:&nbsp;") (:span :class "value" "Jim")))
      :postslots nil))
+
+;;; Test render-view (we'll test on data view)
+(deftest-html render-view-1
+    (render-view (defview nil ()
+		   hello world)
+		 :class-name 'render-view-test-class)
+  #.(data-header-template
+     nil
+     '((:li :class "hello" (:span :class "label text" "Hello:&nbsp;") (:span :class "value missing"
+								       "Not Specified"))
+       (:li :class "world" (:span :class "label text" "World:&nbsp;") (:span :class "value missing"
+								       "Not Specified")))
+     :postslots nil
+     :data-class-name "render-view-test-class"))
 

@@ -26,12 +26,6 @@
   (dolist (table (list-tables :database store))
     (delete-records :from table :database store)))
 
-;;;;;;;;;;;;;;;;;;;
-;;; Information ;;;
-;;;;;;;;;;;;;;;;;;;
-(defmethod supports-filter-p ((store database))
-  nil)
-
 ;;;;;;;;;;;;;;;;;;;;
 ;;; Transactions ;;;
 ;;;;;;;;;;;;;;;;;;;;
@@ -59,7 +53,7 @@
 						  (symbol-name '#:-seq)))))
     (unless current-id
       ;; Create sequence if necessary
-      (unless (sequence-exists-p sequence-name :database store)
+      (unless (sequence-exists-p sequence-name :database store :owner :all)
 	(create-sequence sequence-name :database store))
       ;; Set the id to next sequence number
       (setf (object-id object)
@@ -160,23 +154,31 @@ instances of 'class-name' and order them with 'order-by'."
 	       :flatp t :caching nil :database store))
   #.(restore-sql-reader-syntax-state))
 
-(defmethod find-persistent-objects ((store database) class-name
-				    &key filter filter-view order-by range)
-  (declare (ignore filter filter-view))
-  (select class-name
-	  :order-by (order-by-expression class-name order-by)
-	  :offset (range-to-offset range)
-	  :limit (range-to-limit range)
-	  :where (class-order-by-join-where class-name order-by)
-	  :flatp t :caching nil :database store))
+(defmethod find-persistent-objects ((store database) class-name &key
+				    order-by range where &allow-other-keys)
+  (let ((order-by-join (class-order-by-join-where class-name order-by)))
+    (select class-name
+	    :order-by (order-by-expression class-name order-by)
+	    :offset (range-to-offset range)
+	    :limit (range-to-limit range)
+	    :where (if (and order-by-join where)
+		       (sql-operation 'and order-by-join where)
+		       (or order-by-join where))
+	    :flatp t :caching nil :database store)))
 
 (defmethod count-persistent-objects ((store database) class-name
-				     &key filter filter-view)
-  (declare (ignore filter filter-view))
+				     &key where
+				     &allow-other-keys)
   (let (count)
     #.(locally-enable-sql-reader-syntax) 
     (setf count (car (select [count [*]]
-			     :from (view-table (find-class class-name))
+			     :from (mapcar (lambda (table)
+					     (make-instance 'clsql-sys::sql-ident-table :name table))
+					   (adjoin (view-table (find-class class-name))
+						   (mapcar (lambda (ident)
+							     (slot-value ident 'clsql-sys::name))
+							   (clsql-sys::collect-table-refs where))))
+			     :where where
 			     :flatp t :caching nil :database store)))
     #.(restore-sql-reader-syntax-state)
     count))

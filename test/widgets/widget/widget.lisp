@@ -43,8 +43,8 @@
        (widget-public-dependencies (make-instance 'gridedit :data-class 'employee))))
   ; note, pagination and dataform are there because for gridedit and
   ; datagrid widget-public-dependencies is specialized
-  ("stylesheets/dataform.css" "stylesheets/pagination.css" "stylesheets/datagrid.css"
-			      "scripts/datagrid.js"))
+  ("stylesheets/dataform.css" "stylesheets/pagination.css" "stylesheets/dataseq.css"
+			      "stylesheets/datagrid.css" "scripts/datagrid.js"))
 
 (deftest widget-public-dependencies-3
     (with-request :get nil
@@ -90,7 +90,7 @@
     (with-request :get nil
       (widget-css-classes (make-instance 'gridedit
 					 :data-class 'employee)))
-  "widget datagrid gridedit")
+  "widget dataseq datagrid dataedit-mixin gridedit")
 
 ;;; test with-widget-header
 (deftest-html with-widget-header-1
@@ -100,7 +100,7 @@
 	  (with-html (:p "test")))
 	:widget-prefix-fn (lambda (&rest args) (with-html (:p "hello")))
 	:widget-suffix-fn (lambda (&rest args) (with-html (:p "world")))))
-  (:div :class "widget dataform" :id "widget-123"
+  (:div :class "widget dataform" :id "id-123"
 	(:p "hello")
 	(:p "test")
 	(:p "world")))
@@ -132,21 +132,24 @@
   nil)
 
 (deftest composite-widgets-4
-    (let ((w (make-instance 'composite)))
-      (setf (composite-widgets w) 1)
-      (composite-widgets w))
+    (with-request :get nil
+      (let ((w (make-instance 'composite)))
+	(setf (composite-widgets w) 1)
+	(composite-widgets w)))
   (1))
 
 (deftest composite-widgets-5
-    (let ((w (make-instance 'composite)))
-      (setf (composite-widgets w) nil)
-      (composite-widgets w))
+    (with-request :get nil
+      (let ((w (make-instance 'composite)))
+	(setf (composite-widgets w) nil)
+	(composite-widgets w)))
   nil)
 
 (deftest composite-widgets-6
-    (let ((w (make-instance 'composite)))
-      (setf (composite-widgets w) (list 1))
-      (composite-widgets w))
+    (with-request :get nil
+      (let ((w (make-instance 'composite)))
+	(setf (composite-widgets w) (list 1))
+	(composite-widgets w)))
   (1))
 
 ;;; render function as a widget
@@ -161,7 +164,7 @@
 (deftest-html render-widget-1
     (with-request :get nil
       (render-widget (make-instance 'dataform :data *joe*)))
-  (:div :class "widget dataform" :id "widget-123"
+  (:div :class "widget dataform" :id "id-123"
 	#.(data-header-template
 	   "abc123"
 	   '((:li :class "name" (:span :class "label text" "Name:&nbsp;") (:span :class "value" "Joe"))
@@ -297,7 +300,7 @@
 	  (render-widget w)
 	  (setf (slot-value w 'weblocks::ui-state) :form)
 	  (widget-name (car weblocks::*dirty-widgets*)))))
-  "widget-123")
+  "id-123")
 
 (deftest setf-slot-value-using-class-2
     (with-request :get nil

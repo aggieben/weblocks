@@ -34,7 +34,7 @@
 	(values (null (session-value "debug-reset-sessions")) result1 result2)))
   t
   #.(with-request-template "~
-<div class='widget dataform' id='widget-123'>~
+<div class='widget dataform' id='id-123'>~
 <div class='view data employee'>~
 <div class='extra-top-1'><!-- empty --></div>~
 <div class='extra-top-2'><!-- empty --></div>~
@@ -56,7 +56,7 @@
       :widget-stylesheets '("dataform")
       :title "Hello - Bar")
   #.(format nil "{\"widgets\":~
-{\"widget-123\":~
+{\"id-123\":~
 \"<form class='view form employee' action='' method='post' ~
       onsubmit='initiateFormAction(\\\"abc124\\\", $(this), \\\"weblocks-session=1%3ATEST\\\"); ~
                 return false;'>~
@@ -266,7 +266,8 @@ onclick='disableIrrelevantButtons(this);' />~
 
 (deftest handle-client-request-9
     (with-request :get nil
-      (let (weblocks::*webapp-name* result1)
+      (let ((weblocks::*render-debug-toolbar* nil)
+            weblocks::*webapp-name* result1)
 	;; set up our mini-application with one dataform widget
 	(declare (special weblocks::*webapp-name*))
 	(defwebapp 'hello)
@@ -381,7 +382,7 @@ onclick='disableIrrelevantButtons(this);' />~
     (decf *res*)))
 
 (deftest handle-client-request-13
-    (with-request :get '(("action" . "abc123"))
+    (with-request :post '(("action" . "abc123"))
       (let ((weblocks::*render-debug-toolbar* nil)
 	    weblocks::*webapp-name* (*res* 0))
 	;; set up mini application
@@ -472,7 +473,7 @@ onclick='disableIrrelevantButtons(this);' />~
 {~
 \"widgets\":~
 {~
-\"widget-123\":\"\",~
+\"id-123\":\"\",~
 \"foo-bar\":\"\",~
 null:\"<p>test</p>\"~
 },~

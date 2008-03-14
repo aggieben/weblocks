@@ -35,7 +35,7 @@ returned."
   nil)
 
 ;;; object classes
-#-weblocks-store-test-clsql
+#-(or weblocks-store-test-clsql weblocks-store-test-ele)
 (progn
   (defclass persistent-1 ()
     ((id :initform nil)
@@ -63,6 +63,16 @@ returned."
 	 :db-constraints (:not-null :unique)
 	 :type integer)
      (slot-1 :initarg :slot-1 :accessor p-2-s-1 :type integer)
+     (slot-2 :initarg :slot-2 :accessor p-2-s-2 :type integer))))
+
+#+weblocks-store-test-ele
+(progn
+  (defpclass persistent-1 ()
+    ((slot-1 :initarg :slot-1 :accessor p-1-s-1 :type integer)
+     (slot-2 :initarg :slot-2 :accessor p-1-s-2 :type integer)))
+
+  (defpclass persistent-2 ()
+    ((slot-1 :initarg :slot-1 :accessor p-2-s-1 :type integer)
      (slot-2 :initarg :slot-2 :accessor p-2-s-2 :type integer))))
 
 ;;; test persist-object
@@ -195,33 +205,6 @@ returned."
 				       :range (cons 2 5)
 				       :order-by (cons 'slot-2 :desc))))
   ((5 6) (7 4) (9 2)))
-
-(deftest-store find-persistent-objects-4
-    (if (supports-filter-p *default-store*)
-	(flet ((view-object (obj)
-		 (list (p-1-s-1 obj)
-		       (p-1-s-2 obj))))
-	  (persist-objects *default-store* (make-find-persistent-objects-test-fixtures))
-	  (mapcar #'view-object
-		  (find-persistent-objects *default-store* 'persistent-1
-					   :filter "1"
-					   :order-by (cons 'slot-2 :asc))))
-	'((11 0) (1 10)))
-  ((11 0) (1 10)))
-
-(deftest-store find-persistent-objects-5
-    (if (supports-filter-p *default-store*)
-	(flet ((view-object (obj)
-		 (list (p-1-s-1 obj)
-		       (p-1-s-2 obj))))
-	  (persist-objects *default-store* (make-find-persistent-objects-test-fixtures))
-	  (mapcar #'view-object
-		  (find-persistent-objects *default-store* 'persistent-1
-					   :filter "1"
-					   :order-by (cons 'slot-2 :asc)
-					   :range (cons 0 1))))
-	'((11 0)))
-  ((11 0)))
 
 ;;; test count-persistent-objects
 (deftest-store count-persistent-objects-1

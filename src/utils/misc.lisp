@@ -1,7 +1,7 @@
 
 (in-package :weblocks)
 
-(export '(humanize-name attributize-name insert-after insert-at
+(export '(gen-id humanize-name attributize-name insert-after insert-at
 	  slot-value-by-path safe-apply safe-funcall request-parameter
 	  request-parameters string-whitespace-p render-extra-tags
 	  with-extra-tags alist->plist intersperse
@@ -12,7 +12,15 @@
 	  string-invert-case ninsert add-get-param-to-url
 	  remove-parameter-from-uri asdf-system-directory
 	  make-isearch-regex hash-keys object-class-name
-	  append-custom-fields find-slot-dsd find-slot-esd drop-last))
+	  append-custom-fields find-slot-dsd find-slot-esd drop-last
+	  function-designator-p))
+
+(defun gen-id ()
+  "Generates an ID unique accross the session. The generated ID can be
+used to create IDs for html elements, widgets, etc."
+  (let ((new-widget-id (1+ (or (session-value 'last-unique-id) -1))))
+    (setf (session-value 'last-unique-id) new-widget-id)
+    (format nil "~A" new-widget-id)))
 
 (defgeneric humanize-name (name)
   (:documentation "Convert objects to a human-readable string suitable
@@ -375,8 +383,9 @@ in 'class'."
 	   for dsd in (class-direct-slots class)
 	   when (eq (slot-definition-name dsd) slot-name)
 	   do (return dsd))
-	(car (mapcar (curry-after #'find-slot-dsd slot-name)
-		     (class-direct-superclasses class))))))
+	(find-if (compose #'not #'null)
+		 (mapcar (curry-after #'find-slot-dsd slot-name)
+			 (class-direct-superclasses class))))))
 
 (defun find-slot-esd (class slot-name)
   "Returns an effective-slot-definition object of a slot with
@@ -392,4 +401,11 @@ in 'class'."
 (defun drop-last (list)
   "Returns a copy of the list without the last element."
   (reverse (cdr (reverse list))))
+
+(defun function-designator-p (obj)
+  "Returns true if the object is a function designator."
+  (or (functionp obj)
+      (and (symbolp obj)
+	   (not (null (fboundp obj))))
+      (typep obj 'funcallable-standard-object)))
 

@@ -375,13 +375,26 @@
     (let ((ht (make-hash-table )))
       (setf (gethash 'foo ht) 1)
       (setf (gethash 'bar ht) 1)
-      (hash-keys ht))
-  (foo bar))
+      (sort (hash-keys ht) #'string-lessp :key #'symbol-name))
+  (bar foo))
 
 ;;; Test find-slot-dsd
 (deftest find-slot-dsd-1
     (slot-definition-name (find-slot-dsd 'employee 'name))
   name)
+
+(defclass find-slot-dsd-test-a ()
+  ((find-slot-dsd-test-a :accessor find-slot-dsd-test-a)))
+
+(defclass find-slot-dsd-test-b ()
+  ((find-slot-dsd-test-b :accessor find-slot-dsd-test-b)))
+
+(defclass find-slot-dsd-test-c (find-slot-dsd-test-a find-slot-dsd-test-b)
+  ())
+
+(deftest find-slot-dsd-2
+    (slot-definition-name (find-slot-dsd 'find-slot-dsd-test-c 'find-slot-dsd-test-b))
+  find-slot-dsd-test-b)
 
 ;;; Test find-slot-esd
 (deftest find-slot-esd-1
@@ -401,3 +414,19 @@
     (drop-last nil)
   nil)
 
+;;; Test function-designator-p
+(deftest function-designator-p-1
+    (function-designator-p 'not-a-function)
+  nil)
+
+(deftest function-designator-p-2
+    (function-designator-p 'append)
+  t)
+
+(deftest function-designator-p-3
+    (function-designator-p (lambda ()))
+  t)
+
+(deftest function-designator-p-4
+    (function-designator-p (list))
+  nil)

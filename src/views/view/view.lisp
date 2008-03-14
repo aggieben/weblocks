@@ -5,13 +5,13 @@
 	  view-fields-default-prefix-fn view-fields-default-suffix-fn
 	  view-field view-field-slot-name view-field-reader
 	  view-field-hide-p view-field-prefix-fn view-field-suffix-fn
-	  inline-view-field view-field-label view-field-presentation
-	  mixin mixin-view-field mixin-view-field-view
-	  mixin-view-field-init-form with-view-header
-	  render-view-field render-view-field-value
-	  print-view-field-value generate-scaffold-view
-	  entity-class-name view-class-name view-default-field-type
-	  view-field-class-name presentation-class-name))
+	  view-caption inline-view-field view-field-label
+	  view-field-presentation mixin mixin-view-field
+	  mixin-view-field-view mixin-view-field-init-form
+	  with-view-header render-view-field render-view-field-value
+	  print-view-field-value entity-class-name view-class-name
+	  view-default-field-type view-field-class-name
+	  presentation-class-name))
 
 ;;; Compiled views
 (defparameter *views* (make-hash-table)
@@ -46,7 +46,13 @@
      :accessor view-fields-default-suffix-fn
      :documentation "A function called after rendering the fields. The
      function should expect the view object, the object being
-     rendered, and any additional arguments passed to the view."))
+     rendered, and any additional arguments passed to the view.")
+   (caption :initform nil
+	    :initarg :caption
+	    :accessor view-caption
+	    :documentation "A caption string to be used for the
+	    view. If this field is set to NIL (the default), each view
+	    may use a specialized caption."))
   (:documentation "A meta description of the user interface."))
 
 ;;; View field description
@@ -149,15 +155,10 @@ function to add ways to present data to users."))
 
 (defgeneric print-view-field-value (value presentation field view widget obj &rest args)
   (:documentation "Converts a value to a textual representation.
-Specialize this function to change the way a value is printe in
+Specialize this function to change the way a value is printed in
 views."))
 
 ;;; Declarative view definition protocol
-(defgeneric generate-scaffold-view (scaffold-type object-class)
-  (:documentation "Generates and returns a scaffold view of a given
-scaffold type for a given object class. Scaffold views should examine
-the object class and provide a sensible default view for an object."))
-
 (defun entity-class-name (entity-type suffix)
   "A helper function that generates a class name from an entity name
 and a suffix."

@@ -2,8 +2,8 @@
 (in-package :weblocks)
 
 (export '(open-store close-store clean-store *default-store*
-	  supports-filter-p begin-transaction commit-transaction
-	  rollback-transaction persist-object delete-persistent-object
+	  begin-transaction commit-transaction rollback-transaction
+	  persist-object delete-persistent-object
 	  delete-persistent-object-by-id find-persistent-objects
 	  find-persistent-object-by-id count-persistent-objects))
 
@@ -27,12 +27,6 @@
 
 (defparameter *default-store* nil
   "The default store to which objects are persisted.")
-
-;;; Store information
-(defgeneric supports-filter-p (store)
-  (:documentation "Because full text search is often prohibitively
-  difficult to fully implement, backends must specialize this function
-  to let weblocks query for filtering support."))
 
 ;;; Transactions
 (defgeneric begin-transaction (store)
@@ -75,17 +69,12 @@
   class name in a given store by its unique id. If the object isn't
   found, returns NIL."))
 
-(defgeneric find-persistent-objects (store class-name &key filter
-					   filter-view order-by range)
+(defgeneric find-persistent-objects (store class-name
+					   &key order-by range
+					   &allow-other-keys)
   (:documentation "Looks up and returns objects of appropriate
   'class-name' in the 'store' bound by the given keyword
   parameters.
-
-  If 'filter' is specified, filters the returned objects according to
-  the string provided. This is expected to be a full text search.
-
-  'filter-view' a high level object view description used by the
-  filtering engine to configure the behavior of the query.
 
   If 'order-by' is specified, orders the returned objects by the given
   slot in the given order. If 'order-by' is not NIL, it is expected to
@@ -96,11 +85,17 @@
   objects. The CAR of 'range' is the index of the initial
   object (inclusive) and CDR is the index past the last object. Note,
   the range should be applied after the objects have been filtered and
-  ordered if necessary."))
+  ordered if necessary.
 
-(defgeneric count-persistent-objects (store class-name &key filter filter-view)
+  Other implementation dependent keys may be defined by a given
+  store."))
+
+(defgeneric count-persistent-objects (store class-name &key &allow-other-keys)
   (:documentation "Returns the number of persistent objects stored in
   'store' of 'class-name', bound by the given keyword parameters. For
   documentation of keyword parameters, see
-  'find-persistent-objects'."))
+  'find-persistent-objects'.
+
+  Other implementation dependent keys may be defined by a given
+  store."))
 

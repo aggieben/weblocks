@@ -53,6 +53,14 @@ function onActionSuccess(transport) {
         json = transport.responseText.evalJSON(true);
     }
     
+    // See if there are redirects
+    var redirect = json['redirect'];
+    if(redirect)
+    {
+	window.location.href = redirect;
+	return;
+    }
+    
     // Update dirty widgets
     var dirtyWidgets = json['widgets'];
     for(var i in dirtyWidgets) {
@@ -75,39 +83,41 @@ function onActionSuccess(transport) {
 }
 
 function onActionFailure() {
-    alert('Could not complete the request. This probably means your session has timed out. Please refresh the page and try again.');
+    alert('Oops, we could not complete your request because of an internal error.');
 }
 
 function getActionUrl(actionCode, sessionString, isPure) {
-    var url = location.href + '?' + sessionString + '&action=' + actionCode;
+    var url = location.href.sub(/\?.*/, "") + '?' + sessionString + '&action=' + actionCode;
     if(isPure) {
 	url += '&pure=true';
     }
     return url;
 }
 
-function initiateAction(actionCode, sessionString) {
+function initiateActionWithArgs(actionCode, sessionString, args, method) {
+    if (!method) method = 'get';
     new Ajax.Request(getActionUrl(actionCode, sessionString),
-		     {
-			 method: 'get',
-			 onSuccess: onActionSuccess,
-			 onFailure: onActionFailure
-		     });
+                     {
+                         method: method,
+                         onSuccess: onActionSuccess,
+                         onFailure: onActionFailure,
+                         parameters: args
+                     });
+
+}
+
+/* convenicence/compatibility function */
+function initiateAction(actionCode, sessionString) {
+    initiateActionWithArgs(actionCode, sessionString);
 }
 
 function initiateFormAction(actionCode, form, sessionString) {
     // Hidden "action" field should not be serialized on AJAX
     var serializedForm = form.serialize(true);
     delete(serializedForm['action']);
-    
-    new Ajax.Request(getActionUrl(actionCode, sessionString),
-		     {
-			 method: form.method,
-			 onSuccess: onActionSuccess,
-			 onFailure: onActionFailure,
-			 parameters: serializedForm
-		     });
-}
+
+    initiateActionWithArgs(actionCode, sessionString, serializedForm, form.method);
+} 
 
 function disableIrrelevantButtons(currentButton) {
     $(currentButton.form).getInputs('submit').each(function(obj)

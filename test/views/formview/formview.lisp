@@ -1,6 +1,12 @@
 
 (in-package :weblocks-test)
 
+;;; Test view-caption
+(deftest formview-view-caption-1
+    (view-caption (make-instance 'form-view
+				 :caption "foo"))
+  "foo")
+
 ;;; Test mixin-form-view-field-persist-p
 (deftest mixin-form-view-field-persist-p-1
     (mixin-form-view-field-persist-p (make-instance 'mixin-form-view-field
@@ -31,7 +37,7 @@
   (:div :class "validation-errors-summary"
 	(:h2 :class "error-count"
 	     "There is 1 validation error:")
-	(:ul
+	(:ul :class "non-field-validation-errors"
 	 (:li "Hello is a required field."))))
 
 (deftest-html render-validation-summary-2
@@ -42,9 +48,33 @@
   (:div :class "validation-errors-summary"
 	(:h2 :class "error-count"
 	     "There are 2 validation errors:")
-	(:ul
+	(:ul :class "non-field-validation-errors"
 	 (:li "Hello is a required field.")
 	 (:li "World is a required field."))))
+
+(deftest-html render-validation-summary-3
+    (render-validation-summary (make-instance 'form-view)
+			       *joe* nil
+			       (list (cons 'foo "Hello is a required field.")))
+  (:div :class "validation-errors-summary"
+	(:h2 :class "error-count"
+	     "There is 1 validation error:")
+	(:ul :class "field-validation-errors"
+	 (:li "Hello is a required field."))))
+
+(deftest-html render-validation-summary-4
+    (render-validation-summary (make-instance 'form-view)
+			       *joe* nil
+			       (list (cons nil "Hello is a required field.")
+				     (cons 'foo "World is a required field.")))
+  (:div :class "validation-errors-summary"
+	(:h2 :class "error-count"
+	     "There are 2 validation errors:")
+	(:ul :class "non-field-validation-errors"
+	 (:li "Hello is a required field."))
+	(:ul :class "field-validation-errors"
+	 (:li "World is a required field."))))
+
 
 (deftest-html render-validation-summary-3
     (render-validation-summary (make-instance 'form-view)
@@ -70,6 +100,17 @@
 	(:input :name "cancel" :type "submit" :class "submit cancel" :value "Cancel"
 		:onclick "disableIrrelevantButtons(this);")))
 
+(deftest-html render-form-view-buttons-3
+    (render-form-view-buttons (make-instance 'form-view
+					     :buttons (list (cons :submit "Bar")
+							    (cons :cancel "Foo")))
+			      *joe* nil)
+  (:div :class "submit"
+	(:input :name "submit" :type "submit" :class "submit" :value "Bar"
+		:onclick "disableIrrelevantButtons(this);")
+	(:input :name "cancel" :type "submit" :class "submit cancel" :value "Foo"
+		:onclick "disableIrrelevantButtons(this);")))
+
 ;;; Test form view with-view-header
 (deftest-html form-view-with-view-header-1
     (with-request :get nil
@@ -81,6 +122,25 @@
 	  (declare (ignore args)))))
   #.(form-header-template "abc123"
      '()))
+
+(deftest-html form-view-with-view-header-2
+    (with-request :get nil
+      (with-view-header (make-instance 'form-view
+				       :default-action (lambda (&rest args)
+							 (declare (ignore args)))
+				       :focusp t)
+	*joe* nil
+	(lambda (&rest args)
+	  (declare (ignore args)))))
+  (htm
+   #.(form-header-template "abc123"
+			   '()
+			   :form-id "id-123")
+   #.(format nil "<script type='text/javascript'>
+// <![CDATA[
+$('id-123').focusFirstElement();
+// ]]>
+</script>")))
 
 ;;; Test form view render-view-field
 (deftest-html render-view-field-1

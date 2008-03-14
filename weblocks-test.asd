@@ -18,7 +18,8 @@
 		 (:file "weblocks"
 			:depends-on ("weblocks-test"))
 		 (:module utils-test
-			  :components ((:file "misc"))
+			  :components ((:file "misc")
+				       (:file "runtime-class"))
 			  :depends-on ("weblocks-test"))
 		 (:file "actions"
 			:depends-on ("weblocks-test"))
@@ -63,8 +64,7 @@
 				       (:module dataview
 						:components ((:file "test-template")
 							     (:file "dataview"
-								    :depends-on ("test-template"))
-							     (:file "scaffold")))
+								    :depends-on ("test-template"))))
 				       (:module formview
 						:components ((:file "test-template")
 							     (:file "formview"
@@ -78,9 +78,10 @@
 				       (:module tableview
 						:components ((:file "test-template")
 							     (:file "tableview"
-								    :depends-on ("test-template"))
-							     (:file "scaffold"))
+								    :depends-on ("test-template")))
 						:depends-on (dataview))
+				       (:file "sequence-view"
+					      :depends-on (view))
 				       (:module types
 						:components ((:file "boolean")
 							     (:file "member")
@@ -94,7 +95,9 @@
 										   (:file "radio")
 										   (:file "excerpt")
 										   (:file "paragraph")
-										   (:file "textarea"))))))
+										   (:file "textarea")
+										   (:file "image")
+										   (:file "url"))))))
 			  :depends-on ("weblocks-test" fixtures snippets))
 		 (:module widgets
 			  :components ((:file "widget-test-utils")
@@ -103,10 +106,18 @@
 							     (:file "widget-mop"))
 						:depends-on ("widget-test-utils"))
 				       (:file "dataform")
+				       (:file "quickform")
+				       (:file "login")
 				       (:file "flash")
+				       (:file "datalist")
+				       (:file "listedit")
+				       (:module dataseq
+						:components ((:file "dataseq")))
+				       (:module dataedit
+						:components ((:file "dataedit")
+							     (:file "delete-action")))
 				       (:module datagrid
 						:components ((:file "datagrid")
-							     (:file "filter")
 							     (:file "sort")
 							     (:file "select")
 							     (:file "drilldown"))

@@ -4,6 +4,7 @@
   (:shadowing-import-from :c2mop #:defclass #:defgeneric #:defmethod
 			  #:standard-generic-function #:ensure-generic-function #:standard-class
 			  #:typep #:subtypep)
+  (:shadowing-import-from :weblocks #:redirect)
   (:shadow #:do-test #:do-tests #:continue-testing)
   (:export #:test-weblocks #:do-pending))
 
@@ -147,7 +148,7 @@ the request."
 	    (hunchentoot::*session-secret* (hunchentoot::reset-session-secret))
 	    (hunchentoot::*reply* (make-instance 'hunchentoot::reply))
 	    (make-action-orig #'weblocks::make-action)
-	    (generate-widget-id-orig #'weblocks::generate-widget-id)
+	    (generate-widget-id-orig #'weblocks::gen-id)
 	    (dummy-action-count 123)
 	    (*session-cookie-name* "weblocks-session")
 	    (*uri-tokens* '("foo" "bar"))
@@ -169,9 +170,9 @@ the request."
 								  dummy-action-count))))
 				     (incf dummy-action-count)
 				     result))))
-			 (setf (symbol-function 'weblocks::generate-widget-id)
+			 (setf (symbol-function 'weblocks::gen-id)
 			       (lambda ()
-				 "widget-123"))
+				 "id-123"))
 			 (setf (slot-value *request* 'method) ,method)
 			 (setf (slot-value *request* ',parameters-slot) ,parameters)
 			 (setf (slot-value *request* 'hunchentoot::script-name) "/foo/bar")
