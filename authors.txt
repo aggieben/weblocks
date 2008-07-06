@@ -1,0 +1,6 @@
+coffeemug : Slava Akhmechet : coffeemug@gmail.com
+eslick : Ian Eslick : eslick@media.mit.edu
+polzer : Leslie P. Polzer : leslie.polzer@gmx.net
+rme : Matthew Emerson : rme@clozure.com
+
+
